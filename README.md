@@ -35,6 +35,51 @@
 
 ---
 
+## Installation Guide
+
+Choose the installation method suited for your device:
+
+### Method 1: KernelSU / APatch / Magisk Module (Recommended)
+This is the recommended method. It installs the application as a privileged system app (`priv-app`) with all required ColorOS stylus permissions pre-granted:
+1. Download **`StyloHapticsModule.zip`** from [Releases](https://github.com/Subodhkr360/advance-stylo-haptics/releases).
+2. Open **KernelSU**, **APatch**, or **Magisk** Manager on your tablet.
+3. Go to **Modules** &rarr; **Install from storage** and select `StyloHapticsModule.zip`.
+4. Reboot your device.
+5. Launch **Advance stylo haptics** from your home screen or **Settings &rarr; System & update**.
+6. When prompted, enable the **Advance stylo haptics Accessibility Service** (or tap **Automated Root Setup** to grant it instantly).
+
+---
+
+### Method 2: Custom ROM & Port Integration (For ROM Developers)
+To bake Advance stylo haptics directly into a custom ROM or vendor image:
+1. Place `Stylo2Haptics.apk` into `/system/priv-app/Stylo2Haptics/` (or `/my_product/priv-app/Stylo2Haptics/`).
+2. Place `privapp-permissions-stylo2haptics.xml` into `/system/etc/permissions/` (or `/my_product/etc/permissions/`).
+3. Set file permissions to `0644` (`rw-r--r--`).
+4. *(Optional)* Pre-enable the accessibility service in your ROM's `SettingsProvider` defaults:
+   ```xml
+   <string name="def_enabled_accessibility_services">io.github.Subodhkr360.stylo2.haptics/io.github.Subodhkr360.stylo2.haptics.StyloAccessibilityService</string>
+   <bool name="def_accessibility_enabled">true</bool>
+   ```
+
+---
+
+### Method 3: Standalone APK (Rooted / CorePatch / LuckyTool)
+If you prefer installing the APK directly without a module:
+1. Download and install **`StyloHapticsStudio.apk`** from [Releases](https://github.com/Subodhkr360/advance-stylo-haptics/releases).
+2. Because ColorOS protects the stylus AIDL with `com.oplus.permission.safe.IOT` (a signature/privileged permission):
+   - You can use an Xposed module like **CorePatch** or **LuckyTool** to bypass signature permission restrictions for user apps.
+   - Or grant root access when launching the app and tap **Automated Root Setup**.
+3. Enable the **Advance stylo haptics Accessibility Service** under **Settings &rarr; Accessibility &rarr; Installed Apps**.
+
+---
+
+### Verification
+1. Ensure your **OnePlus Stylo 2** or **OPPO Pencil 2** is connected via Bluetooth.
+2. Tap **Test vibration** in the dashboard &mdash; the pen motor will buzz in your hand.
+3. Open any drawing app (Notes, Sketchbook, HiPaint) or handwriting keyboard (GboardWu) and begin writing on the screen to feel the tactile paper sensation!
+
+---
+
 ## Technical Architecture
 
 1. **Bluetooth Low Energy (BLE) Stylus Motor Sync:**
