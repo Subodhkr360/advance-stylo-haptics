@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ColorOS AMOLED Dark Mode Palette -->
+    <color name="bg_main">#000000</color>
+    <color name="bg_card">#1C1C1E</color>
+    <color name="bg_card_secondary">#2C2C2E</color>
+    <color name="border_subtle">#262628</color>
+    <color name="primary_accent">#0084FF</color>
+    <color name="primary_accent_dim">#0055A5</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#8E8E93</color>
+    <color name="text_tertiary">#636366</color>
+    <color name="status_connected">#34C759</color>
+    <color name="status_connecting">#FF9F0A</color>
+    <color name="status_error">#FF453A</color>
+    <color name="chip_bg">#1C1C1E</color>
+    <color name="search_bg">#242426</color>
+    <color name="switch_track_off">#3A3A3C</color>
+    <color name="seekbar_track_off">#3A3A3C</color>
+    <color name="seekbar_dot_inactive">#636366</color>
+    <color name="scratchpad_bg">#1A2433</color>
+    <color name="bg_circle_button">#2C2C2E</color>
+    <color name="bg_popup">#242426</color>
+</resources>

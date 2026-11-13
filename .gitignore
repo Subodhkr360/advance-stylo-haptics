@@ -1,0 +1,14 @@
+# Build and compilation outputs
+build/
+*.apk
+*.idsig
+*.dex
+*.class
+
+# Generated source files
+src/**/R.java
+
+# Temporary editor / system files
+.DS_Store
+*.swp
+*~

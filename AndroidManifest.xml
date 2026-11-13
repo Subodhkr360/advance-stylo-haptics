@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.github.Subodhkr360.stylo2.haptics"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-sdk
+        android:minSdkVersion="26"
+        android:targetSdkVersion="34" />
+
+    <uses-permission android:name="com.oplus.permission.safe.IOT" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <queries>
+        <package android:name="com.oplus.ipemanager" />
+        <intent>
+            <action android:name="com.oplus.ipemanager.ACTION.PENCIL_SDK" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.StyloHaptics">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTop"
+            android:screenOrientation="unspecified">
+
+            <!-- Launcher Home Icon -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- ColorOS Settings -> System & update Injection -->
+            <intent-filter>
+                <action android:name="com.android.settings.MANUFACTURER_APPLICATION_SETTING" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="com.android.settings.category"
+                android:value="com.oplus.settings.category.ia.more_system_settings" />
+            <meta-data
+                android:name="com.oplus.settings.preference_category_key"
+                android:value="key_common" />
+            <meta-data
+                android:name="com.android.settings.title"
+                android:resource="@string/settings_title" />
+            <meta-data
+                android:name="com.android.settings.summary"
+                android:resource="@string/settings_summary" />
+            <meta-data
+                android:name="com.android.settings.icon"
+                android:resource="@mipmap/ic_launcher" />
+            <meta-data
+                android:name="com.android.settings.order"
+                android:value="1460" />
+            <meta-data
+                android:name="com.android.settings.keyhint"
+                android:value="advance_haptics_control_key" />
+        </activity>
+
+        <service
+            android:name=".StyloAccessibilityService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>

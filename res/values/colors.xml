@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ColorOS Light Mode Palette -->
+    <color name="bg_main">#F1F2F6</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="bg_card_secondary">#F5F6F9</color>
+    <color name="border_subtle">#E5E6EB</color>
+    <color name="primary_accent">#0084FF</color>
+    <color name="primary_accent_dim">#D0E6FF</color>
+    <color name="text_primary">#111111</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_tertiary">#9E9E9E</color>
+    <color name="status_connected">#34C759</color>
+    <color name="status_connecting">#FF9F0A</color>
+    <color name="status_error">#FF453A</color>
+    <color name="chip_bg">#F1F2F6</color>
+    <color name="search_bg">#E5E6EB</color>
+    <color name="switch_track_off">#E5E6EB</color>
+    <color name="seekbar_track_off">#E5E6EB</color>
+    <color name="seekbar_dot_inactive">#B0B3BA</color>
+    <color name="scratchpad_bg">#EBF4FF</color>
+    <color name="bg_circle_button">#E5E6EB</color>
+    <color name="bg_popup">#FFFFFF</color>
+</resources>
