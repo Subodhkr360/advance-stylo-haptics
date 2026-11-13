@@ -1,6 +1,18 @@
-# Advance Stylo Haptics
+<div align="center">
+  <img src="docs/icon.png" width="128" height="128" alt="Advance stylo haptics Icon" />
+  <h1>Advance stylo haptics</h1>
+  <p><b>Advanced tactile and handwriting haptic engine for OnePlus Stylo 2 & OPPO Pencil 2 on ColorOS / OxygenOS 14+</b></p>
+</div>
 
-An advanced tactile and handwriting haptic engine for **OnePlus Stylo 2** and **OPPO Pencil 2** on OnePlus Pad 2 and ColorOS / OxygenOS 14+ tablets.
+---
+
+## Screenshots
+
+<div align="center">
+  <img src="docs/screenshot_main.jpg" width="48%" alt="Main Dashboard & App Profiles" />
+  &nbsp;
+  <img src="docs/screenshot_dialog.jpg" width="48%" alt="Per-App Custom Vibration Profile" />
+</div>
 
 ---
 
@@ -8,8 +20,8 @@ An advanced tactile and handwriting haptic engine for **OnePlus Stylo 2** and **
 
 - **Native ColorOS / OxygenOS Design:** Built with ColorOS squircle containers, rounded popups, authentic toggle switches, flush intensity slider, and dark/light mode switching that dynamically adapts to system themes and floating window sizes.
 - **Dual Launch Points:**
-  - Standard launcher home screen icon (`Advance Stylo Haptics`).
-  - Seamless system integration inside **Settings &rarr; System & update &rarr; Advance Stylo Haptics**.
+  - Standard launcher home screen icon (`Advance stylo haptics`).
+  - Seamless system integration inside **Settings &rarr; System & update &rarr; Advance stylo haptics**.
 - **Hardware-Level Tactile Textures:**
   - **Pencil:** Realistic graphite paper friction.
   - **Eraser:** Firm high-resistance rubber friction feel.
@@ -42,6 +54,10 @@ StyloHapticsProject/
 ├── AndroidManifest.xml        # Manifest with launcher & settings injection
 ├── build.sh                  # One-click portable build & deployment script
 ├── debug.keystore            # Development signing keystore
+├── docs/                     # App icon & high-resolution screenshots
+│   ├── icon.png
+│   ├── screenshot_main.jpg
+│   └── screenshot_dialog.jpg
 ├── zipalign.py               # Pure Python 4-byte APK alignment utility
 ├── res/                      # ColorOS styled drawables, layouts, and colors
 └── src/
@@ -56,8 +72,7 @@ StyloHapticsProject/
         ├── StylusHapticsManager.java    # Stylus BLE & touchpanel driver
         ├── StyloAccessibilityService.java # App & IME focus tracker
         ├── AppListAdapter.java          # Per-app profile configuration
-        ├── BootReceiver.java            # Boot auto-initialization receiver
-        └── StylusTapMonitor.java        # Stylus gesture monitor
+        └── BootReceiver.java            # Boot auto-initialization receiver
 ```
 
 ---
@@ -77,14 +92,15 @@ StyloHapticsProject/
 ### Build Command
 
 ```bash
-# Build standalone APK only:
+# Build standalone APK and Magisk/KernelSU flashable module:
 ./build.sh --no-install
 
-# Build and automatically deploy to active KernelSU/Magisk root environment:
+# Build and automatically deploy directly on a rooted device:
 ./build.sh
 ```
 
-The compiled APK will be generated at `./StyloHapticsStudio.apk`.
+- Standalone APK: `./StyloHapticsStudio.apk`
+- Flashable Priv-App Module: `/storage/emulated/0/StyloHapticsModule.zip`
 
 ---
 
