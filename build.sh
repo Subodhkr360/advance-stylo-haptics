@@ -91,6 +91,11 @@ EOF
 cp "$MODULE_DIR/system/etc/permissions/privapp-permissions-stylo2haptics.xml" "$MODULE_DIR/product/etc/permissions/"
 cp "$MODULE_DIR/system/etc/permissions/privapp-permissions-stylo2haptics.xml" "$MODULE_DIR/system_ext/etc/permissions/"
 
+cat << 'EOF' > "$MODULE_DIR/customize.sh"
+SKIPUNZIP=0
+set_perm_recursive "$MODPATH" 0 0 0755 0644
+EOF
+
 python3 -c "
 import zipfile, os
 with zipfile.ZipFile('/storage/emulated/0/StyloHapticsModule.zip', 'w', zipfile.ZIP_DEFLATED) as z:
