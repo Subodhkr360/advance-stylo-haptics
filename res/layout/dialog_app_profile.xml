@@ -88,66 +88,6 @@
             android:popupBackground="@drawable/coloros_popup_menu_bg"
             android:dropDownVerticalOffset="6dp"
             android:popupElevation="16dp"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Strength / Intensity Slider -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="6dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Vibration intensity"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary" />
-
-            <TextView
-                android:id="@+id/dialog_tv_strength_val"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="80%"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary" />
-        </LinearLayout>
-
-        <io.github.Subodhkr360.stylo2.haptics.OnePlusSeekBar
-            android:id="@+id/dialog_seekbar_strength"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="4"
-            android:progress="3" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="4dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Weak"
-                android:textSize="11sp"
-                android:textColor="@color/text_secondary" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Strong"
-                android:textSize="11sp"
-                android:textColor="@color/text_secondary" />
-        </LinearLayout>
+            android:layout_marginBottom="4dp" />
     </LinearLayout>
 </ScrollView>

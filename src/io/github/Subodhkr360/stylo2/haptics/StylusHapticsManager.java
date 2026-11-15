@@ -12,6 +12,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 
+import com.oplus.ipemanager.IUIPageCallback;
 import com.oplus.ipemanager.sdk.ISdkAidlInterface;
 import com.oplus.ipemanager.sdk.Vibration;
 
@@ -22,6 +23,7 @@ import java.util.Set;
 public class StylusHapticsManager {
     private static final String TAG = "StyloHapticsManager";
     private static final String ACTION_PENCIL_SDK = "com.oplus.ipemanager.ACTION.PENCIL_SDK";
+    private static final String ACTION_TOUCH_FEEDBACK = "com.oplus.ipemanager.action.TOUCH_FEEDBACK";
     private static final String PKG_IPE = "com.oplus.ipemanager";
     private static final String PREFS_NAME = "stylo_haptics_prefs";
 
@@ -61,6 +63,7 @@ public class StylusHapticsManager {
     private Context mAppContext;
     private SharedPreferences mPrefs;
     private ISdkAidlInterface mSdk;
+    private IUIPageCallback mUiCallback;
     private boolean mIsBound = false;
     private boolean mIsDrawingVibrating = false;
     private int mCurrentVibrationType = -1;
@@ -95,15 +98,27 @@ public class StylusHapticsManager {
     }
 
     private void seedDefaultProfiles() {
-        if (!mPrefs.contains(PREF_WHITELIST)) {
-            Set<String> defaults = new HashSet<>();
-            for (String pkg : KNOWN_DRAWING_APPS) {
-                defaults.add(pkg);
-                saveAppProfile(new AppProfile(pkg, true, PATTERN_PENCIL, 4));
+        if (!mPrefs.getBoolean("pref_defaults_v4_applied", false)) {
+            SharedPreferences.Editor editor = mPrefs.edit();
+            for (String key : new HashSet<>(mPrefs.getAll().keySet())) {
+                if (key.startsWith("app_enabled_")) {
+                    String pkg = key.substring("app_enabled_".length());
+                    if (!"dev.jason.com.google.android.inputmethod.latin".equals(pkg)
+                            && !"com.google.android.inputmethod.latin".equals(pkg)) {
+                        editor.remove(key);
+                    }
+                }
             }
-            defaults.add("com.agy");
-            saveAppProfile(new AppProfile("com.agy", true, PATTERN_PENCIL, 5));
-            mPrefs.edit().putStringSet(PREF_WHITELIST, defaults).apply();
+            Set<String> defaults = new HashSet<>();
+            defaults.add("dev.jason.com.google.android.inputmethod.latin");
+            defaults.add("com.google.android.inputmethod.latin");
+            editor.putStringSet(PREF_WHITELIST, defaults);
+            editor.putBoolean("app_enabled_dev.jason.com.google.android.inputmethod.latin", true);
+            editor.putBoolean("app_enabled_com.google.android.inputmethod.latin", true);
+            editor.putBoolean(PREF_FUNCTIONAL_FEEDBACK, true);
+            editor.putBoolean(PREF_HANDWRITING_FEEDBACK, true);
+            editor.putBoolean("pref_defaults_v4_applied", true);
+            editor.apply();
         }
     }
 
@@ -126,7 +141,8 @@ public class StylusHapticsManager {
         if (isOwnApp) {
             return new AppProfile(packageName, false, PATTERN_PENCIL, 4);
         }
-        boolean defaultEnabled = isDrawingApp(packageName) || "com.agy".equals(packageName);
+        boolean defaultEnabled = "dev.jason.com.google.android.inputmethod.latin".equals(packageName)
+                || "com.google.android.inputmethod.latin".equals(packageName);
 
         boolean enabled;
         if (mPrefs.contains("app_enabled_" + packageName)) {
@@ -175,6 +191,37 @@ public class StylusHapticsManager {
         }
     }
 
+    public static boolean isAccessibilityServiceEnabled(Context context) {
+        if (context == null) return false;
+        try {
+            String enabledServices = android.provider.Settings.Secure.getString(
+                context.getContentResolver(),
+                android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            );
+            if (enabledServices == null) return false;
+            String expected = context.getPackageName() + "/" + StyloAccessibilityService.class.getName();
+            String expectedShort = context.getPackageName() + "/.StyloAccessibilityService";
+            return enabledServices.contains(expected) || enabledServices.contains(expectedShort);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static boolean isInstalledAsModule(Context context) {
+        if (context == null) return false;
+        try {
+            android.content.pm.ApplicationInfo ai = context.getApplicationInfo();
+            boolean isSystem = (ai.flags & (android.content.pm.ApplicationInfo.FLAG_SYSTEM | android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
+            if (isSystem) return true;
+            if (ai.sourceDir != null && ai.sourceDir.startsWith("/system/")) return true;
+            if (new java.io.File("/system/priv-app/Stylo2Haptics").exists()
+                    || new java.io.File("/data/adb/modules/stylo2-haptics-privapp").exists()) {
+                return true;
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
     public void setStateListener(StateListener listener) {
         mStateListener = listener;
         notifyState();
@@ -182,10 +229,90 @@ public class StylusHapticsManager {
 
     private void notifyState() {
         if (mStateListener != null) {
-            boolean ready = mIsBound && (mSdk != null);
-            String status = ready ? "Connected" : "Disconnected";
+            boolean ready = isConnected();
+            String status = ready ? "Connected" : "Accessibility Required";
             mStateListener.onConnectionStateChanged(ready, status);
         }
+    }
+
+    public boolean isTouchpanelHapticsReady() {
+        try {
+            java.io.File file = new java.io.File("/proc/touchpanel/pencil_control");
+            if (file.exists() && (file.canWrite() || file.canRead())) {
+                return true;
+            }
+        } catch (Throwable ignored) {}
+        return checkRootAvailable();
+    }
+
+    public static final String[] SU_PATHS = {
+        "/system/bin/su",
+        "/data/adb/ksu/bin/su",
+        "/data/adb/ap/bin/su",
+        "/data/adb/magisk/su",
+        "su"
+    };
+
+    public static boolean executeRoot(String... commands) {
+        for (String suBin : SU_PATHS) {
+            Process p = null;
+            try {
+                p = Runtime.getRuntime().exec(new String[]{suBin, "-c", "sh"});
+                java.io.DataOutputStream os = new java.io.DataOutputStream(p.getOutputStream());
+                for (String cmd : commands) {
+                    os.writeBytes(cmd + "\n");
+                }
+                os.writeBytes("exit\n");
+                os.flush();
+                int code = p.waitFor();
+                if (code == 0) return true;
+            } catch (Throwable ignored) {
+            } finally {
+                if (p != null) p.destroy();
+            }
+        }
+        return false;
+    }
+
+    public boolean checkRootAvailable() {
+        for (String suBin : SU_PATHS) {
+            Process p = null;
+            try {
+                p = Runtime.getRuntime().exec(new String[]{suBin, "-c", "id"});
+                int code = p.waitFor();
+                if (code == 0) return true;
+            } catch (Throwable ignored) {
+            } finally {
+                if (p != null) p.destroy();
+            }
+        }
+        return false;
+    }
+
+    public boolean applyRootSetup() {
+        String pkg = mAppContext.getPackageName();
+        String svc = pkg + "/" + pkg + ".StyloAccessibilityService";
+        return executeRoot(
+            "chmod 666 /proc/touchpanel/pencil_control",
+            "echo 3 > /proc/touchpanel/pencil_control",
+            "chmod 666 /dev/input/event*",
+            "CUR=$(settings get secure enabled_accessibility_services)",
+            "case \"$CUR\" in *\"" + svc + "\"*) ;; null|\"\"|\" \") settings put secure enabled_accessibility_services \"" + svc + "\" ;; *) settings put secure enabled_accessibility_services \"$CUR:" + svc + "\" ;; esac",
+            "settings put secure accessibility_enabled 1",
+            "dumpsys deviceidle whitelist +" + pkg,
+            "dumpsys deviceidle whitelist +com.oplus.ipemanager"
+        );
+    }
+
+    private void syncInitialHardwareState() {
+        try {
+            int hardwareLevel = queryCurrentHardwareLevel();
+            syncHardwareLevel(hardwareLevel);
+            setNativeVibrationType(getNativeType(mPrefs.getInt(PREF_GLOBAL_PATTERN, PATTERN_PENCIL)));
+            if (mPrefs.getBoolean(PREF_HANDWRITING_FEEDBACK, true)) {
+                writeTouchpanelPencilControl(3);
+            }
+        } catch (Throwable ignored) {}
     }
 
     private final ServiceConnection mConn = new ServiceConnection() {
@@ -196,16 +323,14 @@ public class StylusHapticsManager {
                 mSdk = ISdkAidlInterface.Stub.asInterface(binder);
                 mIsBound = true;
                 notifyState();
-                // Sync initial hardware settings
-                syncHardwareLevel(mPrefs.getInt(PREF_GLOBAL_STRENGTH, 4));
-                setNativeVibrationType(getNativeType(mPrefs.getInt(PREF_GLOBAL_PATTERN, PATTERN_PENCIL)));
+                syncInitialHardwareState();
                 if (mPrefs.getBoolean(PREF_HANDWRITING_FEEDBACK, true)) {
                     startDrawingFeedback();
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error resolving ISdkAidlInterface", e);
                 mSdk = null;
-                mIsBound = false;
+                mIsBound = isTouchpanelHapticsReady();
                 notifyState();
             }
         }
@@ -214,26 +339,78 @@ public class StylusHapticsManager {
         public void onServiceDisconnected(ComponentName name) {
             Log.w(TAG, "onServiceDisconnected: " + name);
             mSdk = null;
-            mIsBound = false;
+            mIsBound = isTouchpanelHapticsReady();
             mIsDrawingVibrating = false;
             notifyState();
         }
     };
 
+    private final ServiceConnection mUiConn = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder binder) {
+            Log.i(TAG, "onServiceConnected for IUIPageCallback: " + name);
+            try {
+                mUiCallback = IUIPageCallback.Stub.asInterface(binder);
+                mIsBound = true;
+                int strength = queryCurrentHardwareLevel();
+                mUiCallback.setWrittenFeedbackLevel(strength);
+                mUiCallback.setWrittenFeedbackState(mPrefs.getBoolean(PREF_HANDWRITING_FEEDBACK, true));
+                mUiCallback.setFunctionFeedbackEnable(mPrefs.getBoolean(PREF_FUNCTIONAL_FEEDBACK, true));
+                notifyState();
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed initializing IUIPageCallback: " + t.getMessage());
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.w(TAG, "onServiceDisconnected for IUIPageCallback: " + name);
+            mUiCallback = null;
+        }
+    };
+
     public synchronized void bind() {
-        if (mIsBound && mSdk != null) return;
-        Intent intent = new Intent(ACTION_PENCIL_SDK);
-        intent.setPackage(PKG_IPE);
-        try {
-            boolean ok = mAppContext.bindService(intent, mConn, Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT | Context.BIND_ABOVE_CLIENT);
-            if (!ok && mStateListener != null) {
-                mStateListener.onConnectionStateChanged(false, "Service Not Found");
+        mIsBound = true;
+        writeTouchpanelPencilControl(3);
+        syncInitialHardwareState();
+        notifyState();
+
+        if (mSdk == null) {
+            try {
+                Intent intent = new Intent(ACTION_PENCIL_SDK);
+                intent.setPackage(PKG_IPE);
+                mAppContext.bindService(intent, mConn, Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT | Context.BIND_ABOVE_CLIENT);
+            } catch (Throwable t) {
+                Log.d(TAG, "PENCIL_SDK AIDL bind restricted: " + t.getMessage());
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Exception on bind", e);
-            if (mStateListener != null) {
-                mStateListener.onConnectionStateChanged(false, "Bind Error: " + e.getMessage());
+        }
+
+        if (mUiCallback == null) {
+            try {
+                Intent uiIntent = new Intent(ACTION_TOUCH_FEEDBACK);
+                uiIntent.setPackage(PKG_IPE);
+                mAppContext.bindService(uiIntent, mUiConn, Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT | Context.BIND_ABOVE_CLIENT);
+            } catch (Throwable t) {
+                Log.d(TAG, "TOUCH_FEEDBACK AIDL bind restricted: " + t.getMessage());
             }
+        }
+
+        // Auto-configure root in background if available and accessibility is not yet running
+        if (!isAccessibilityServiceEnabled(mAppContext) && !isInstalledAsModule(mAppContext)) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (checkRootAvailable()) {
+                        applyRootSetup();
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                notifyState();
+                            }
+                        });
+                    }
+                }
+            }).start();
         }
     }
 
@@ -243,14 +420,18 @@ public class StylusHapticsManager {
             stopDrawingFeedback();
             mAppContext.unbindService(mConn);
         } catch (Exception ignored) {}
+        try {
+            mAppContext.unbindService(mUiConn);
+        } catch (Exception ignored) {}
         mIsBound = false;
         mSdk = null;
+        mUiCallback = null;
         mIsDrawingVibrating = false;
         notifyState();
     }
 
     public boolean isConnected() {
-        return mIsBound && (mSdk != null);
+        return isAccessibilityServiceEnabled(mAppContext);
     }
 
     public int getNativeType(int pattern) {
@@ -271,9 +452,7 @@ public class StylusHapticsManager {
     public void applyProfile(AppProfile profile) {
         if (profile == null) return;
         int nativeType = getNativeType(profile.pattern);
-        int targetStrength = Math.max(1, Math.min(5, profile.strength));
         setNativeVibrationType(nativeType);
-        syncHardwareLevel(targetStrength);
     }
 
     public void setNativeVibrationType(int typeOrdinal) {
@@ -286,17 +465,47 @@ public class StylusHapticsManager {
             }
         }
         try {
-            Uri uri = Uri.parse("content://com.oplus.ipemanager.provider/integer/local_config/sp_key_unic_write_vibration_type/" + typeOrdinal);
+            Uri uri = Uri.parse("content://com.oplus.ipemanager.provider/integer/local_config/sp_key_unic_write_vibration_type");
             ContentValues cv = new ContentValues();
             cv.put("sp_key_unic_write_vibration_type", typeOrdinal);
             mAppContext.getContentResolver().insert(uri, cv);
         } catch (Exception ignored) {}
     }
 
-    public void syncHardwareLevel(final int level) {
-        mCurrentStrength = level;
+    public int queryCurrentHardwareLevel() {
+        int level = mPrefs.getInt(PREF_GLOBAL_STRENGTH, 4);
+        android.database.Cursor cursor = null;
         try {
             Uri uri = Uri.parse("content://com.oplus.ipemanager.provider/integer/local_config/sp_key_unic_written_feedback_level/" + level);
+            cursor = mAppContext.getContentResolver().query(uri, null, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                int colIdx = cursor.getColumnIndex("SP_COLUMN_NAME");
+                if (colIdx >= 0) {
+                    int val = cursor.getInt(colIdx);
+                    if (val >= 1 && val <= 5) {
+                        level = val;
+                        mPrefs.edit().putInt(PREF_GLOBAL_STRENGTH, level).apply();
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return level;
+    }
+
+    public void syncHardwareLevel(final int level) {
+        mCurrentStrength = level;
+        if (mUiCallback != null) {
+            try {
+                mUiCallback.setWrittenFeedbackLevel(level);
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed setWrittenFeedbackLevel on IUIPageCallback: " + t.getMessage());
+            }
+        }
+        try {
+            Uri uri = Uri.parse("content://com.oplus.ipemanager.provider/integer/local_config/sp_key_unic_written_feedback_level");
             ContentValues cv = new ContentValues();
             cv.put("sp_key_unic_written_feedback_level", level);
             mAppContext.getContentResolver().insert(uri, cv);
@@ -304,6 +513,20 @@ public class StylusHapticsManager {
     }
 
     public void syncFunctionalFeedback(boolean enabled) {
+        if (mUiCallback != null) {
+            try {
+                mUiCallback.setFunctionFeedbackEnable(enabled);
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed setFunctionFeedbackEnable on IUIPageCallback: " + t.getMessage());
+            }
+        }
+        try {
+            mAppContext.getContentResolver().call(
+                Uri.parse("content://com.oplus.ipemanager.btadsorb.provider.speechactive"),
+                enabled ? "api_open_handwritten_pen_function_feedback_switch" : "api_close_handwritten_pen_function_feedback_switch",
+                null, null
+            );
+        } catch (Throwable ignored) {}
         try {
             Uri uri = Uri.parse("content://com.oplus.ipemanager.provider/boolean/local_config/SP_KEY_UNIC_FUNCTION_FEEDBACK_STATE/" + enabled);
             ContentValues cv = new ContentValues();
@@ -313,6 +536,20 @@ public class StylusHapticsManager {
     }
 
     public void syncHandwritingFeedbackState(boolean enabled) {
+        if (mUiCallback != null) {
+            try {
+                mUiCallback.setWrittenFeedbackState(enabled);
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed setWrittenFeedbackState on IUIPageCallback: " + t.getMessage());
+            }
+        }
+        try {
+            mAppContext.getContentResolver().call(
+                Uri.parse("content://com.oplus.ipemanager.btadsorb.provider.speechactive"),
+                enabled ? "api_open_write_feedback_switch" : "api_close_write_feedback_switch",
+                null, null
+            );
+        } catch (Throwable ignored) {}
         try {
             Uri uri = Uri.parse("content://com.oplus.ipemanager.provider/boolean/local_config/sp_key_unic_written_feedback_state/" + enabled);
             ContentValues cv = new ContentValues();

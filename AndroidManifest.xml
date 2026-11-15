@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.Subodhkr360.stylo2.haptics"
-    android:versionCode="1"
-    android:versionName="1.0">
+    android:versionCode="220"
+    android:versionName="2.2.0">
 
     <uses-sdk
         android:minSdkVersion="26"
@@ -13,11 +13,18 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <queries>
         <package android:name="com.oplus.ipemanager" />
         <intent>
             <action android:name="com.oplus.ipemanager.ACTION.PENCIL_SDK" />
+        </intent>
+        <intent>
+            <action android:name="com.oplus.ipemanager.action.TOUCH_FEEDBACK" />
         </intent>
     </queries>
 
@@ -36,10 +43,8 @@
             android:launchMode="singleTop"
             android:screenOrientation="unspecified">
 
-            <!-- Launcher Home Icon -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
             <!-- ColorOS Settings -> System & update Injection -->
@@ -71,6 +76,20 @@
                 android:value="advance_haptics_control_key" />
         </activity>
 
+        <!-- Launcher Home Icon Alias -->
+        <activity-alias
+            android:name=".LauncherAlias"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <service
             android:name=".StyloAccessibilityService"
             android:exported="true"
@@ -88,7 +107,9 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.USER_PRESENT" />
             </intent-filter>
         </receiver>
 

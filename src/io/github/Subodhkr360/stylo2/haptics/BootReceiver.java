@@ -9,9 +9,20 @@ public class BootReceiver extends BroadcastReceiver {
     private static final String TAG = "StyloBootReceiver";
 
     @Override
-    public void onReceive(Context context, Intent intent) {
-        Log.i(TAG, "Boot received, initializing Stylo Haptics");
-        StylusHapticsManager manager = StylusHapticsManager.getInstance(context);
-        manager.bind();
+    public void onReceive(final Context context, Intent intent) {
+        Log.i(TAG, "Boot received, auto-checking root and initializing Stylo Haptics");
+        final StylusHapticsManager manager = StylusHapticsManager.getInstance(context);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    manager.applyRootSetup();
+                    manager.bind();
+                    LandscapeViewManager.getInstance(context).reapplyAllOverrides();
+                } catch (Throwable t) {
+                    Log.e(TAG, "Boot root setup error: " + t.getMessage());
+                }
+            }
+        }).start();
     }
 }

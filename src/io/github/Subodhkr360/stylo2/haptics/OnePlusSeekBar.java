@@ -100,6 +100,14 @@ public class OnePlusSeekBar extends SeekBar {
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
     }
 
+    private OnSeekBarChangeListener mCustomListener;
+
+    @Override
+    public void setOnSeekBarChangeListener(OnSeekBarChangeListener l) {
+        mCustomListener = l;
+        super.setOnSeekBarChangeListener(l);
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (!isEnabled()) {
@@ -116,16 +124,39 @@ public class OnePlusSeekBar extends SeekBar {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_MOVE:
-                float x = event.getX();
-                float ratio = (x - x0) / travel;
-                ratio = Math.max(0f, Math.min(1f, ratio));
-                int newProgress = Math.round(ratio * max);
-                setProgress(newProgress);
+                if (mCustomListener != null) {
+                    mCustomListener.onStartTrackingTouch(this);
+                }
+                float xDown = event.getX();
+                float ratioDown = (xDown - x0) / travel;
+                ratioDown = Math.max(0f, Math.min(1f, ratioDown));
+                int progressDown = Math.round(ratioDown * max);
+                setProgress(progressDown);
+                if (mCustomListener != null) {
+                    mCustomListener.onProgressChanged(this, progressDown, true);
+                }
                 invalidate();
                 return true;
+
+            case MotionEvent.ACTION_MOVE:
+                float xMove = event.getX();
+                float ratioMove = (xMove - x0) / travel;
+                ratioMove = Math.max(0f, Math.min(1f, ratioMove));
+                int newProgress = Math.round(ratioMove * max);
+                if (newProgress != getProgress()) {
+                    setProgress(newProgress);
+                    if (mCustomListener != null) {
+                        mCustomListener.onProgressChanged(this, newProgress, true);
+                    }
+                }
+                invalidate();
+                return true;
+
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                if (mCustomListener != null) {
+                    mCustomListener.onStopTrackingTouch(this);
+                }
                 invalidate();
                 return true;
         }

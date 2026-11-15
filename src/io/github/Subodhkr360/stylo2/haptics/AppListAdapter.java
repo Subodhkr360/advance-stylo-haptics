@@ -120,16 +120,13 @@ public class AppListAdapter extends BaseAdapter implements Filterable {
     }
 
     private String getProfileSummaryText(StylusHapticsManager.AppProfile profile) {
-        String patternName;
         switch (profile.pattern) {
-            case StylusHapticsManager.PATTERN_PENCIL: patternName = "Pencil"; break;
-            case StylusHapticsManager.PATTERN_ERASER: patternName = "Eraser"; break;
-            case StylusHapticsManager.PATTERN_BALLPOINT: patternName = "Ballpoint"; break;
-            case StylusHapticsManager.PATTERN_FOUNTAIN: patternName = "Fountain"; break;
-            default: patternName = "Pencil"; break;
+            case StylusHapticsManager.PATTERN_PENCIL: return "Pencil";
+            case StylusHapticsManager.PATTERN_ERASER: return "Eraser";
+            case StylusHapticsManager.PATTERN_BALLPOINT: return "Ballpoint";
+            case StylusHapticsManager.PATTERN_FOUNTAIN: return "Fountain";
+            default: return "Pencil";
         }
-        int pct = Math.max(1, Math.min(5, profile.strength)) * 20;
-        return patternName + " • " + pct + "%";
     }
 
     @Override
